@@ -14,10 +14,8 @@ env:
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
-  contents: read
-  actions: read
-  id-token: write
-  packages: write
+  id-token: write  # ✅ Required for OIDC Authentication
+  contents: read   # ✅ Required for actions/checkout
 
 jobs:
   publish:
@@ -25,49 +23,38 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Download artifact
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.payload.workflow_run.id,
-            });
-            const matchArtifact = artifacts.data.artifacts.find((artifact) => {
-              return artifact.name === 'python-package'
-            });
-            if (!matchArtifact) {
-              throw new Error('No artifact found');
-            }
-            const download = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: matchArtifact.id,
-              archive_format: 'zip'
-            });
-            const fs = require('fs');
-            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/artifact.zip`, Buffer.from(download.data));
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Unzip artifact
-        run: |
-          mkdir -p dist
-          unzip artifact.zip -d dist
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
 
       - name: List directory contents
         run: ls -la dist/
         shell: bash
 
-      - name: Install Cloudsmith CLI
+      - name: Authenticate with Cloudsmith (OIDC)
+        id: auth
         run: |
-          pip install --upgrade cloudsmith-cli
-          cloudsmith configure api-key ${{ secrets.CLOUDSMITH_API_KEY }}
+          # Request the GitHub OIDC token
+          oidc_token=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
 
-      - name: Push package to Cloudsmith
+          # Exchange the OIDC token for a Cloudsmith token
+          cloudsmith_token=$(curl -X POST -H "Content-Type: application/json" \
+            -d "{\"oidc_token\":\"$oidc_token\", \"service_slug\":\"${{ env.CLOUDSMITH_SERVICE_SLUG }}\"}" \
+            https://api.cloudsmith.io/openid/${{ env.CLOUDSMITH_NAMESPACE }}/ | jq -r '.token')
+
+          # Store the Cloudsmith token as an environment variable
+          echo "CLOUDSMITH_API_KEY=$cloudsmith_token" >> $GITHUB_ENV
+
+      - name: Push Package to Cloudsmith
         run: |
-          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
-            echo "No package found to upload"
-            exit 1
-          fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
-        shell: bash
+          cloudsmith push python \
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} \
+            dist/*
+        env:
+          CLOUDSMITH_API_KEY: ${{ env.CLOUDSMITH_API_KEY }}
