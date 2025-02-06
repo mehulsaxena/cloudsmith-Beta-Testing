@@ -58,6 +58,11 @@ jobs:
         run: ls -la dist/
         shell: bash
 
+      # ✅ Install Cloudsmith CLI Before Authentication
+      - name: Install Cloudsmith CLI
+        run: |
+          pip install --upgrade cloudsmith-cli
+                  
       - name: Authenticate with Cloudsmith (OIDC)
         id: auth
         run: |
