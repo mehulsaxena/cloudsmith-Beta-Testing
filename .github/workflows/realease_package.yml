@@ -10,7 +10,7 @@ on:
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
-  CLOUDSMITH_REPOSITORY: "staging"
+  CLOUDSMITH_REPOSITORY: ${{ vars.CLOUDSMITH_REPOSITORY}}
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
@@ -95,4 +95,4 @@ jobs:
           interview-mehul-saxena/interview-mehul-saxena \
           dist/example_package-4.2.2-py3-none-any.whl
         env:
-          CLOUDSMITH_API_KEY: ${{ env.CLOUDSMITH_API_KEY }}
+          CLOUDSMITH_API_KEY: ${{ vars.CLOUDSMITH_API_KEY }}
