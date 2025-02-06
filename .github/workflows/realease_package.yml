@@ -92,7 +92,7 @@ jobs:
       - name: Push Package to Cloudsmith
         run: |
           cloudsmith push python \
-            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} \
-            ${{ env.PACKAGE_PATH }}
+          interview-mehul-saxena/interview-mehul-saxena \
+          dist/example_package-4.2.2-py3-none-any.whl
         env:
           CLOUDSMITH_API_KEY: ${{ env.CLOUDSMITH_API_KEY }}
