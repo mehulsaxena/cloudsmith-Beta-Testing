@@ -16,6 +16,8 @@ env:
 permissions:
   contents: read
   actions: read
+  id-token: write
+  packages: write
 
 jobs:
   publish:
@@ -28,15 +30,17 @@ jobs:
         with:
           name: python-package
           path: dist
-          repository: ${{ github.repository }}
-          github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
-
-
 
       - name: List directory contents
         run: ls -la dist/
         shell: bash
+
+      # FIX: Add Cloudsmith CLI Setup
+      - name: Install Cloudsmith CLI
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
+        with:
+          oidc-namespace: ${{ env.CLOUDSMITH_NAMESPACE }}
+          oidc-service-slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}
 
       - name: Push package to Cloudsmith
         run: |
