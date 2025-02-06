@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dummy-package"
+name = "example-package"
 version = "4.2.2"
 
 authors = [
