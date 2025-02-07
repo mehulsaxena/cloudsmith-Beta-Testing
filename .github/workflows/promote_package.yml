@@ -38,11 +38,6 @@ jobs:
             https://api.cloudsmith.io/openid/${{ env.CLOUDSMITH_NAMESPACE }}/ | jq -r '.token')
           echo "CLOUDSMITH_API_KEY=$cloudsmith_token" >> $GITHUB_ENV
 
-      - name: Debug Webhook Payload
-        run: |
-          echo "📩 Received webhook payload:"
-          echo '${{ toJson(github.event.client_payload) }}'
-
 
       - name: Check Cloudsmith Authentication
         run: |
@@ -81,8 +76,8 @@ jobs:
             if [ -n "$IDENTIFIER" ] && [ "$IDENTIFIER" != "null" ]; then
               echo "🚀 Promoting package: $IDENTIFIER"
               cloudsmith mv --yes \
-                ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
-                ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+                ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+                
               if [ $? -eq 0 ]; then
                 echo "✅ Successfully promoted package: $IDENTIFIER"
               else
