@@ -77,7 +77,11 @@ jobs:
       - name: Add Tags to Cloudsmith Package
         run: |
           cloudsmith whoami
-          cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n ready-for-production
+          echo "Listing packages..."
+          cloudsmith list packages interview-mehul-saxena/interview-mehul-saxena
+          echo "Tag List"
+          cloudsmith tags list interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n
+          cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n "ready-for-production"
           
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
