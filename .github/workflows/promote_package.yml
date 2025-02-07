@@ -74,17 +74,37 @@ jobs:
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
 
-      - name: Add Tags to Cloudsmith Package
+      - name: Fetch Latest Package Identifier and Add Tag
         run: |
-          cloudsmith whoami
-          echo "Listing packages..."
-          cloudsmith list packages interview-mehul-saxena/interview-mehul-saxena
-          echo "Tag List"
-          cloudsmith tags list interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n
-          cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n "ready-for-production"
+          echo "Fetching latest package identifier..."
           
+          # Fetch the latest package identifier dynamically
+          PACKAGE_SLUG=$(cloudsmith list packages interview-mehul-saxena/interview-mehul-saxena --output-format=json | jq -r '.data[] | select(.name=="example-package") | .slug' | head -n 1)
+      
+          echo "Latest Package Slug: $PACKAGE_SLUG"
+      
+          if [ -z "$PACKAGE_SLUG" ]; then
+            echo "❌ No package slug found. Exiting..."
+            exit 1
+          fi
+      
+          # Add the tag dynamically to the latest package identifier
+          cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/$PACKAGE_SLUG ready-for-production
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+
+
+      # - name: Add Tags to Cloudsmith Package
+      #   run: |
+      #     cloudsmith whoami
+      #     echo "Listing packages..."
+      #     cloudsmith list packages interview-mehul-saxena/interview-mehul-saxena
+      #     echo "Tag List"
+      #     cloudsmith tags list interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n
+      #     cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n "ready-for-production"
+          
+      #   env:
+      #     CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
 
       - name: Promote Tagged Packages to Production
         run: |
