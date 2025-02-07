@@ -10,7 +10,7 @@ env:
   CLOUDSMITH_STAGING_REPO: 'staging'
   CLOUDSMITH_PRODUCTION_REPO: 'production'
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
-  PACKAGE_NAME: 'example_package'
+  PACKAGE_NAME: 'example-package'
 
 permissions:
   id-token: write
@@ -48,50 +48,65 @@ jobs:
       # ✅ Debug Webhook Payload to Verify Data
       - name: Debug Webhook Payload
         run: |
-          echo "Received webhook payload:"
+          echo "📩 Received webhook payload:"
           echo '${{ toJson(github.event.client_payload) }}'
 
-      - name: Process webhook and tag package
+      - name: Extract Package Identifier
         run: |
-          # Extract package information from webhook payload
           PACKAGE_IDENTIFIER="${{ github.event.client_payload.package_identifier }}"
-          echo "Processing package: $PACKAGE_IDENTIFIER"
-          
-          # Add ready-for-production tag
-          cloudsmith tag add \
-            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$PACKAGE_IDENTIFIER \
-            ready-for-production
-          
-          echo "Tagged package as ready-for-production"
+
+          if [ -z "$PACKAGE_IDENTIFIER" ] || [ "$PACKAGE_IDENTIFIER" == "null" ]; then
+            echo "❌ ERROR: Package identifier is missing or empty!"
+            exit 1
+          fi
+
+          echo "✅ Extracted Package Identifier: $PACKAGE_IDENTIFIER"
+          echo "PACKAGE_IDENTIFIER=$PACKAGE_IDENTIFIER" >> $GITHUB_ENV
         shell: bash
 
-      - name: Promote tagged packages
+      - name: Tag Package as Ready for Production
         run: |
-          # Query for packages with ready-for-production tag
+          echo "Processing package: $PACKAGE_IDENTIFIER"
+
+          cloudsmith tags add \
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$PACKAGE_IDENTIFIER \
+            ready-for-production
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully tagged package: $PACKAGE_IDENTIFIER"
+          else
+            echo "❌ Failed to tag package: $PACKAGE_IDENTIFIER"
+            exit 1
+          fi
+        shell: bash
+        env:
+          PACKAGE_IDENTIFIER: ${{ env.PACKAGE_IDENTIFIER }}
+
+      - name: Promote Tagged Packages to Production
+        run: |
           PACKAGE_QUERY="tag:ready-for-production"
-          echo "Searching for packages with query: $PACKAGE_QUERY"
-          
-          # Get all packages with the ready-for-production tag
+          echo "🔍 Searching for packages with query: $PACKAGE_QUERY"
+
           PACKAGE_DATA=$(cloudsmith list package \
             ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} \
             -q "$PACKAGE_QUERY" -F json)
-          
-          # Extract and process each package identifier
+
           echo "$PACKAGE_DATA" | jq -r '.data[].identifier_perm' | while read -r IDENTIFIER; do
             if [ -n "$IDENTIFIER" ] && [ "$IDENTIFIER" != "null" ]; then
-              echo "Promoting package: $IDENTIFIER"
-              
-              # Promote the package to production
+              echo "🚀 Promoting package: $IDENTIFIER"
+
               cloudsmith mv --yes \
                 ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
                 ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_PRODUCTION_REPO }}
-              
+
               if [ $? -eq 0 ]; then
-                echo "Successfully promoted package: $IDENTIFIER"
+                echo "✅ Successfully promoted package: $IDENTIFIER"
               else
-                echo "Failed to promote package: $IDENTIFIER"
+                echo "❌ Failed to promote package: $IDENTIFIER"
                 exit 1
               fi
+            else
+              echo "⚠️ No valid package identifiers found for promotion."
             fi
           done
         shell: bash
