@@ -1,6 +1,5 @@
 name: Promote Python Package
 
-# Changed from manual workflow_dispatch to repository_dispatch for webhook
 on:
   repository_dispatch:
     types: [package_synchronized]
@@ -25,7 +24,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq curl
 
-      # ✅ Install Cloudsmith CLI Before Authentication
       - name: Install Cloudsmith CLI
         run: |
           pip install --upgrade cloudsmith-cli
@@ -33,19 +31,13 @@ jobs:
       - name: Authenticate with Cloudsmith (OIDC)
         id: auth
         run: |
-          # Request the GitHub OIDC token
           oidc_token=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
-
-          # Exchange the OIDC token for a Cloudsmith token
           cloudsmith_token=$(curl -X POST -H "Content-Type: application/json" \
             -d "{\"oidc_token\":\"$oidc_token\", \"service_slug\":\"${{ env.CLOUDSMITH_SERVICE_SLUG }}\"}" \
             https://api.cloudsmith.io/openid/${{ env.CLOUDSMITH_NAMESPACE }}/ | jq -r '.token')
-
-          # Store the Cloudsmith token as an environment variable
           echo "CLOUDSMITH_API_KEY=$cloudsmith_token" >> $GITHUB_ENV
 
-      # ✅ Debug Webhook Payload to Verify Data
       - name: Debug Webhook Payload
         run: |
           echo "📩 Received webhook payload:"
@@ -54,32 +46,32 @@ jobs:
       - name: Extract Package Identifier
         run: |
           PACKAGE_IDENTIFIER="${{ github.event.client_payload.package_identifier }}"
-
           if [ -z "$PACKAGE_IDENTIFIER" ] || [ "$PACKAGE_IDENTIFIER" == "null" ]; then
             echo "❌ ERROR: Package identifier is missing or empty!"
             exit 1
           fi
-
           echo "✅ Extracted Package Identifier: $PACKAGE_IDENTIFIER"
           echo "PACKAGE_IDENTIFIER=$PACKAGE_IDENTIFIER" >> $GITHUB_ENV
         shell: bash
 
+      - name: Verify Package Existence Before Tagging
+        run: |
+          echo "🔍 Checking if package exists: $PACKAGE_IDENTIFIER in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO"
+          PACKAGE_LIST=$(cloudsmith list packages "$CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO" -F json)
+          PACKAGE_EXISTS=$(echo "$PACKAGE_LIST" | jq -r ".data[] | select(.slug==\"$PACKAGE_IDENTIFIER\")")
+          if [ -z "$PACKAGE_EXISTS" ]; then
+            echo "❌ ERROR: Package $PACKAGE_IDENTIFIER not found in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO!"
+            exit 1
+          fi
+          echo "✅ Package found: $PACKAGE_IDENTIFIER"
+          echo "🔍 Package Details:"
+          echo "$PACKAGE_EXISTS" | jq '.'
+        shell: bash
+
       - name: Tag Package as Ready for Production
         run: |
-          echo "Processing package: ${{ github.event.client_payload.package_identifier }}"
-
-          cloudsmith tags add interview-mehul-saxena/staging/example-package ready-for-production
-
-          # cloudsmith tags add \
-          #   ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ github.event.client_payload.package_identifier }}\
-          #   ready-for-production
-
-          # if [ $? -eq 0 ]; then
-          #   echo "✅ Successfully tagged package: ${{ github.event.client_payload.package_identifier }}"
-          # else
-          #   echo "❌ Failed to tag package: $PACKAGE_IDENTIFIER"
-          #   exit 1
-          # fi
+          echo "Processing package: $PACKAGE_IDENTIFIER"
+          cloudsmith tags add "$CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO/$PACKAGE_IDENTIFIER" "ready-for-production"
         shell: bash
         env:
           PACKAGE_IDENTIFIER: ${{ env.PACKAGE_IDENTIFIER }}
@@ -88,19 +80,15 @@ jobs:
         run: |
           PACKAGE_QUERY="tag:ready-for-production"
           echo "🔍 Searching for packages with query: $PACKAGE_QUERY"
-
           PACKAGE_DATA=$(cloudsmith list package \
             ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} \
             -q "$PACKAGE_QUERY" -F json)
-
           echo "$PACKAGE_DATA" | jq -r '.data[].identifier_perm' | while read -r IDENTIFIER; do
             if [ -n "$IDENTIFIER" ] && [ "$IDENTIFIER" != "null" ]; then
               echo "🚀 Promoting package: $IDENTIFIER"
-
               cloudsmith mv --yes \
                 ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
                 ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_PRODUCTION_REPO }}
-
               if [ $? -eq 0 ]; then
                 echo "✅ Successfully promoted package: $IDENTIFIER"
               else
