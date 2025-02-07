@@ -68,16 +68,18 @@ jobs:
         run: |
           echo "Processing package: ${{ github.event.client_payload.package_identifier }}"
 
-          cloudsmith tags add \
-            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ github.event.client_payload.package_identifier }}\
-            ready-for-production
+          cloudsmith tags add interview-mehul-saxena/staging/example-package ready-for-production
 
-          if [ $? -eq 0 ]; then
-            echo "✅ Successfully tagged package: ${{ github.event.client_payload.package_identifier }}"
-          else
-            echo "❌ Failed to tag package: $PACKAGE_IDENTIFIER"
-            exit 1
-          fi
+          # cloudsmith tags add \
+          #   ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ github.event.client_payload.package_identifier }}\
+          #   ready-for-production
+
+          # if [ $? -eq 0 ]; then
+          #   echo "✅ Successfully tagged package: ${{ github.event.client_payload.package_identifier }}"
+          # else
+          #   echo "❌ Failed to tag package: $PACKAGE_IDENTIFIER"
+          #   exit 1
+          # fi
         shell: bash
         env:
           PACKAGE_IDENTIFIER: ${{ env.PACKAGE_IDENTIFIER }}
