@@ -75,7 +75,7 @@ jobs:
           echo "$PACKAGE_DATA" | jq -r '.data[].identifier_perm' | while read -r IDENTIFIER; do
             if [ -n "$IDENTIFIER" ] && [ "$IDENTIFIER" != "null" ]; then
               echo "🚀 Promoting package: $IDENTIFIER"
-              cloudsmith mv --yes interview-mehul-saxena/interview-mehul-saxena/$IDENTIFIER production
+              cloudsmith mv --yes interview-mehul-saxena/interview-mehul-saxena/"$IDENTIFIER" production
               
               if [ $? -eq 0 ]; then
                 echo "✅ Successfully promoted package: $IDENTIFIER"
