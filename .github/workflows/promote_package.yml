@@ -70,7 +70,7 @@ jobs:
 
       - name: Add Tags to Cloudsmith Package
         run: |
-          cloudsmith tags set interview-mehul-saxena/interview-mehul-saxena/example_package-4.2.2 \
+          cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-4.2.2 \
           --tags "ready-for-production"
         env:
           CLOUDSMITH_API_KEY: ${{ vars.CLOUDSMITH_API_KEY }}
