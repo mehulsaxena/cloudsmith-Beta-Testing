@@ -76,6 +76,7 @@ jobs:
 
       - name: Add Tags to Cloudsmith Package
         run: |
+          cloudsmith whoami
           cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n ready-for-production
           
         env:
