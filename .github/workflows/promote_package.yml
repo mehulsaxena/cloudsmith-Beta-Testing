@@ -69,7 +69,7 @@ jobs:
           echo "Processing package: "${{ github.event.client_payload.package_identifier }}"
 
           cloudsmith tags add \
-            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/"${{ github.event.client_payload.package_identifier }}"\
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ github.event.client_payload.package_identifier }}\
             ready-for-production
 
           if [ $? -eq 0 ]; then
