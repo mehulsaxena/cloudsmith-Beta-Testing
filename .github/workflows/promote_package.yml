@@ -25,11 +25,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq curl
 
+      # ✅ Install Cloudsmith CLI Before Authentication
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
-        with:
-          oidc-namespace: ${{ env.CLOUDSMITH_NAMESPACE }}
-          oidc-service-slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}
+        run: |
+          pip install --upgrade cloudsmith-cli
+
+      - name: Authenticate with Cloudsmith (OIDC)
+        id: auth
+        run: |
+          # Request the GitHub OIDC token
+          oidc_token=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
+
+          # Exchange the OIDC token for a Cloudsmith token
+          cloudsmith_token=$(curl -X POST -H "Content-Type: application/json" \
+            -d "{\"oidc_token\":\"$oidc_token\", \"service_slug\":\"${{ env.CLOUDSMITH_SERVICE_SLUG }}\"}" \
+            https://api.cloudsmith.io/openid/${{ env.CLOUDSMITH_NAMESPACE }}/ | jq -r '.token')
+
+          # Store the Cloudsmith token as an environment variable
+          echo "CLOUDSMITH_API_KEY=$cloudsmith_token" >> $GITHUB_ENV
 
       - name: Process webhook and tag package
         run: |
