@@ -82,7 +82,7 @@ jobs:
               echo "🚀 Promoting package: $IDENTIFIER"
               cloudsmith mv --yes \
                 ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
-                ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+                ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
               if [ $? -eq 0 ]; then
                 echo "✅ Successfully promoted package: $IDENTIFIER"
               else
