@@ -45,6 +45,12 @@ jobs:
           # Store the Cloudsmith token as an environment variable
           echo "CLOUDSMITH_API_KEY=$cloudsmith_token" >> $GITHUB_ENV
 
+      # ✅ Debug Webhook Payload to Verify Data
+      - name: Debug Webhook Payload
+        run: |
+          echo "Received webhook payload:"
+          echo '${{ toJson(github.event.client_payload) }}'
+
       - name: Process webhook and tag package
         run: |
           # Extract package information from webhook payload
