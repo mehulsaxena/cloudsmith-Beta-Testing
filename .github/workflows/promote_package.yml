@@ -43,38 +43,37 @@ jobs:
           echo "📩 Received webhook payload:"
           echo '${{ toJson(github.event.client_payload) }}'
 
-      - name: Extract Package Identifier
-        run: |
-          PACKAGE_IDENTIFIER="${{ github.event.client_payload.package_identifier }}"
-          if [ -z "$PACKAGE_IDENTIFIER" ] || [ "$PACKAGE_IDENTIFIER" == "null" ]; then
-            echo "❌ ERROR: Package identifier is missing or empty!"
-            exit 1
-          fi
-          echo "✅ Extracted Package Identifier: $PACKAGE_IDENTIFIER"
-          echo "PACKAGE_IDENTIFIER=$PACKAGE_IDENTIFIER" >> $GITHUB_ENV
-        shell: bash
+      # - name: Extract Package Identifier
+      #   run: |
+      #     PACKAGE_IDENTIFIER="${{ github.event.client_payload.package_identifier }}"
+      #     if [ -z "$PACKAGE_IDENTIFIER" ] || [ "$PACKAGE_IDENTIFIER" == "null" ]; then
+      #       echo "❌ ERROR: Package identifier is missing or empty!"
+      #       exit 1
+      #     fi
+      #     echo "✅ Extracted Package Identifier: $PACKAGE_IDENTIFIER"
+      #     echo "PACKAGE_IDENTIFIER=$PACKAGE_IDENTIFIER" >> $GITHUB_ENV
+      #   shell: bash
 
-      - name: Verify Package Existence Before Tagging
-        run: |
-          echo "🔍 Checking if package exists: $PACKAGE_IDENTIFIER in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO"
-          PACKAGE_LIST=$(cloudsmith list packages "$CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO" -F json)
-          PACKAGE_EXISTS=$(echo "$PACKAGE_LIST" | jq -r ".data[] | select(.slug==\"$PACKAGE_IDENTIFIER\")")
-          if [ -z "$PACKAGE_EXISTS" ]; then
-            echo "❌ ERROR: Package $PACKAGE_IDENTIFIER not found in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO!"
-            exit 1
-          fi
-          echo "✅ Package found: $PACKAGE_IDENTIFIER"
-          echo "🔍 Package Details:"
-          echo "$PACKAGE_EXISTS" | jq '.'
-        shell: bash
+      # - name: Verify Package Existence Before Tagging
+      #   run: |
+      #     echo "🔍 Checking if package exists: $PACKAGE_IDENTIFIER in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO"
+      #     PACKAGE_LIST=$(cloudsmith list packages "$CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO" -F json)
+      #     PACKAGE_EXISTS=$(echo "$PACKAGE_LIST" | jq -r ".data[] | select(.slug==\"$PACKAGE_IDENTIFIER\")")
+      #     if [ -z "$PACKAGE_EXISTS" ]; then
+      #       echo "❌ ERROR: Package $PACKAGE_IDENTIFIER not found in $CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO!"
+      #       exit 1
+      #     fi
+      #     echo "✅ Package found: $PACKAGE_IDENTIFIER"
+      #     echo "🔍 Package Details:"
+      #     echo "$PACKAGE_EXISTS" | jq '.'
+      #   shell: bash
 
-      - name: Tag Package as Ready for Production
+      - name: Add Tags to Cloudsmith Package
         run: |
-          echo "Processing package: $PACKAGE_IDENTIFIER"
-          cloudsmith tags add "$CLOUDSMITH_NAMESPACE/$CLOUDSMITH_STAGING_REPO/$PACKAGE_IDENTIFIER" "ready-for-production"
-        shell: bash
+          cloudsmith tags set interview-mehul-saxena/interview-mehul-saxena/example_package-4.2.2 \
+          --tags "ready-for-production"
         env:
-          PACKAGE_IDENTIFIER: ${{ env.PACKAGE_IDENTIFIER }}
+          CLOUDSMITH_API_KEY: ${{ vars.CLOUDSMITH_API_KEY }}
 
       - name: Promote Tagged Packages to Production
         run: |
