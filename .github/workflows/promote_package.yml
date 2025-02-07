@@ -68,12 +68,18 @@ jobs:
       #     echo "$PACKAGE_EXISTS" | jq '.'
       #   shell: bash
 
+      - name: Check Cloudsmith Authentication
+        run: |
+          cloudsmith whoami
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+
       - name: Add Tags to Cloudsmith Package
         run: |
           cloudsmith tags add interview-mehul-saxena/interview-mehul-saxena/example_package-422-py3-none-anywhl-eb9n ready-for-production
           
         env:
-          CLOUDSMITH_API_KEY: ${{ vars.CLOUDSMITH_API_KEY }}
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
 
       - name: Promote Tagged Packages to Production
         run: |
