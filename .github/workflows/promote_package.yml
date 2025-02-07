@@ -66,7 +66,7 @@ jobs:
 
       - name: Tag Package as Ready for Production
         run: |
-          echo "Processing package: "${{ github.event.client_payload.package_identifier }}"
+          echo "Processing package: ${{ github.event.client_payload.package_identifier }}"
 
           cloudsmith tags add \
             ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/${{ github.event.client_payload.package_identifier }}\
