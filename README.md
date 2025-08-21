@@ -1,4 +1,4 @@
-**Welcome to Cloudsmith Support Assessment**
+**Welcome to Cloudsmith Beta Testing**
 
 Please review the documentation provided by the recruiter for full instructions.
 
