@@ -1,6 +1,6 @@
 **Welcome to Cloudsmith Beta Testing**
 
-Please review the documentation provided by the recruiter for full instructions.
+Please review the documentation for full instructions.
 
 **Repository Overview**
 
